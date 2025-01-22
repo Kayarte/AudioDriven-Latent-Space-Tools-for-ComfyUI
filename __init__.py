@@ -1,9 +1,12 @@
 import importlib
 
 # List of node files to include
-node_list = ["librosa_analysis_node"]
+node_list = [
+    "librosa_analysis_node",
+    "audio_noise_nodes",
+    "NoiseToLatentConverter"
+]
 
-# Mappings
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
