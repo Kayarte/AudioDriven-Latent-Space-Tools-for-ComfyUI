@@ -12,18 +12,15 @@ Features
 
 Settings
 
-    Interval Options: Choose between various presets for energy and beat intervals.
-        Default Librosa settings
-        Every second
-        Every half-second
-        Based on beats
+added more. 
+
+*Librosa Audio Analysis - settings = segment doesnt work.* 
+
+The rest do!
         
 Installation
 
     Download or clone this repository to your ComfyUI\custom_nodes folder
 
 For a Greater Project.
-This node is part of a ongoing solo project to integrate music analysis with visual m^e2i2v (Music to Energy to Image to Video) or m^e2v2v (Music to Energy to Video) generation. 
-    
-![image](https://github.com/user-attachments/assets/59b6de21-79ab-403d-b21a-ea47568c482b)
-
+This node is part of a ongoing solo project to integrate music analysis.
