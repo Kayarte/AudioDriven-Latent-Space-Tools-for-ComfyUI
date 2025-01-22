@@ -1,11 +1,13 @@
-import numpy as np
-from PIL import Image
+import torch
+import math
+from Limbrosa.nodes.audio_noise_nodes import NoiseParams
 
 class NoiseToLatentConverter:
-    """Converts audio-driven noise parameters to latent noise format compatible with VAE nodes"""
-    
+    def __init__(self):
+        pass
+        
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(s):
         return {
             "required": {
                 "noise_params": ("NOISE_PARAMS",),
@@ -15,110 +17,63 @@ class NoiseToLatentConverter:
                 "noise_type": (["gaussian", "salt_pepper", "perlin"],),
             }
         }
-    
+
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "generate_latent_noise"
     CATEGORY = "audio/noise"
 
+    def rand_perlin_2d(self, shape, res, fade=lambda t: 6*t**5 - 15*t**4 + 10*t**3):
+        delta = (res[0] / shape[0], res[1] / shape[1])
+        d = (shape[0] // res[0], shape[1] // res[1])
+        grid = torch.stack(torch.meshgrid(torch.arange(0, res[0], delta[0]), torch.arange(0, res[1], delta[1])), dim=-1) % 1
+        angles = 2*math.pi*torch.rand(res[0]+1, res[1]+1)
+        gradients = torch.stack((torch.cos(angles), torch.sin(angles)), dim=-1)
+        
+        tile_grads = lambda slice1, slice2: gradients[slice1[0]:slice1[1], slice2[0]:slice2[1]].repeat_interleave(d[0], 0).repeat_interleave(d[1], 1)
+        dot = lambda grad, shift: (torch.stack((grid[:shape[0],:shape[1],0] + shift[0], grid[:shape[0],:shape[1], 1] + shift[1]), dim=-1) * grad[:shape[0], :shape[1]]).sum(dim=-1)
+        
+        n00 = dot(tile_grads([0, -1], [0, -1]), [0, 0])
+        n10 = dot(tile_grads([1, None], [0, -1]), [-1, 0])
+        n01 = dot(tile_grads([0, -1], [1, None]), [0, -1])
+        n11 = dot(tile_grads([1, None], [1, None]), [-1, -1])
+        
+        t = fade(grid[:shape[0], :shape[1]])
+        return math.sqrt(2) * torch.lerp(torch.lerp(n00, n10, t[..., 0]), torch.lerp(n01, n11, t[..., 0]), t[..., 1])
+
     def generate_latent_noise(self, noise_params, width, height, batch_size, noise_type):
-        # Get parameters for the selected noise type
-        params = noise_params[noise_type]
-        
-        # Calculate latent dimensions (1/8 of image dimensions for VAE)
-        latent_width = width // 8
         latent_height = height // 8
+        latent_width = width // 8
+        params = {k: v for k, v in noise_params.items() if k != "timestamps"}
+        selected_params = params[noise_type]
         
-        # Generate base noise
+        intensity = selected_params["intensity"]
+        grain = selected_params["grain"]
+        persistence = selected_params["persistence"]
+
+        noise = torch.zeros((batch_size, 4, latent_height, latent_width), dtype=torch.float32, device="cpu")
+        
         if noise_type == "gaussian":
-            noise = np.random.normal(0, params.intensity, 
-                                   (batch_size, 4, latent_height, latent_width))
-        elif noise_type == "salt_pepper":
-            noise = np.random.choice([-params.intensity, params.intensity],
-                                   size=(batch_size, 4, latent_height, latent_width),
-                                   p=[1-params.grain, params.grain])
-        else:  # perlin
-            noise = self._generate_perlin_noise(latent_height, latent_width, 
-                                              params.grain, params.persistence,
-                                              batch_size)
+            noise = torch.randn((batch_size, 4, latent_height, latent_width)) * intensity * persistence
         
+        elif noise_type == "salt_pepper":
+            mask = torch.rand((batch_size, 4, latent_height, latent_width)) < grain
+            noise[mask] = intensity
+            noise[~mask] = -intensity
+            noise *= persistence
+            
+        elif noise_type == "perlin":
+            for i in range(batch_size):
+                for j in range(4):
+                    noise_values = self.rand_perlin_2d((latent_height, latent_width), (1,1))
+                    noise_values = intensity * noise_values * persistence
+                    noise[i, j] = noise_values
+
         return ({"samples": noise},)
-    
-    def _generate_perlin_noise(self, height, width, scale, persistence, batch_size):
-        from opensimplex import OpenSimplex
-        
-        noise = np.zeros((batch_size, 4, height, width))
-        for b in range(batch_size):
-            for c in range(4):
-                simplex = OpenSimplex(seed=np.random.randint(0, 1000000))
-                for y in range(height):
-                    for x in range(width):
-                        noise[b,c,y,x] = simplex.noise2(x*scale, y*scale)
-        
-        return noise
 
-class NoiseVisualizer:
-    """Visualizes the generated noise as an image"""
-    
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "noise_params": ("NOISE_PARAMS",),
-                "width": ("INT", {"default": 512, "min": 64, "max": 2048, "step": 8}),
-                "height": ("INT", {"default": 512, "min": 64, "max": 2048, "step": 8}),
-                "noise_type": (["gaussian", "salt_pepper", "perlin"],),
-            }
-        }
-    
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "visualize_noise"
-    CATEGORY = "audio/noise"
-
-    def visualize_noise(self, noise_params, width, height, noise_type):
-        # Get parameters for the selected noise type
-        params = noise_params[noise_type]
-        
-        # Generate noise based on type
-        if noise_type == "gaussian":
-            noise = np.random.normal(0.5, params.intensity/2, (height, width))
-            noise = np.clip(noise, 0, 1)
-        
-        elif noise_type == "salt_pepper":
-            noise = np.random.choice([0, 1], size=(height, width),
-                                   p=[1-params.grain, params.grain])
-        
-        else:  # perlin
-            noise = self._generate_perlin_noise(height, width, 
-                                              params.grain, params.persistence)
-            noise = (noise + 1) / 2  # Convert from [-1,1] to [0,1]
-        
-        # Convert to PIL Image format
-        noise_image = (noise * 255).astype(np.uint8)
-        image = Image.fromarray(noise_image)
-        
-        # Convert to RGB and stack for ComfyUI compatibility
-        rgb_image = np.array(image.convert('RGB'))
-        return (rgb_image[None, ...],)
-    
-    def _generate_perlin_noise(self, height, width, scale, persistence):
-        from opensimplex import OpenSimplex
-        
-        simplex = OpenSimplex(seed=np.random.randint(0, 1000000))
-        noise = np.zeros((height, width))
-        
-        for y in range(height):
-            for x in range(width):
-                noise[y,x] = simplex.noise2(x*scale, y*scale)
-        
-        return noise
-
-# Register the nodes
 NODE_CLASS_MAPPINGS = {
-    "NoiseToLatentConverter": NoiseToLatentConverter,
-    "NoiseVisualizer": NoiseVisualizer
+    "NoiseToLatentConverter": NoiseToLatentConverter
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "NoiseToLatentConverter": "Audio Noise to Latent",
-    "NoiseVisualizer": "Visualize Audio Noise"
 }
