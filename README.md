@@ -25,4 +25,5 @@ Installation
 For a Greater Project.
 This node is part of a ongoing solo project to integrate music analysis with visual m^e2i2v (Music to Energy to Image to Video) or m^e2v2v (Music to Energy to Video) generation. 
     
-![Screenshot 2025-01-21 201523](https://github.com/user-attachments/assets/5d575870-172b-4a9c-87ec-46c8686214e4)
+![image](https://github.com/user-attachments/assets/59b6de21-79ab-403d-b21a-ea47568c482b)
+
