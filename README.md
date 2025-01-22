@@ -24,3 +24,5 @@ Installation
 
 For a Greater Project.
 This node is part of a ongoing solo project to integrate music analysis.
+
+![image](https://github.com/user-attachments/assets/41db3228-bee4-4d99-a4b7-766ae93cd5b9)
