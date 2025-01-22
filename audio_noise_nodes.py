@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
@@ -81,12 +81,31 @@ class AudioNoiseMapper:
             
             # Generate different noise distributions
             noise_params = {
-                "gaussian": self._energy_to_gaussian(smooth_energy, params),
-                "salt_pepper": self._energy_to_salt_pepper(smooth_energy, params),
-                "perlin": self._energy_to_perlin(smooth_energy, params),
+                "gaussian": {
+                    "intensity": float(np.mean(smooth_energy) * params["scale"] * 3),
+                    "grain": float(np.std(smooth_energy) * 5),
+                    "persistence": float(self._calculate_persistence(smooth_energy, params)),
+                    "distribution": "gaussian"
+                },
+                "salt_pepper": {
+                    "intensity": float(np.sum(smooth_energy > np.percentile(smooth_energy, 75)) / len(smooth_energy)),
+                    "grain": float(1.0 / params["window_size"]),
+                    "persistence": float(self._calculate_persistence(smooth_energy, params)),
+                    "distribution": "salt_pepper"
+                },
+                "perlin": {
+                    "intensity": float(np.max(smooth_energy) * params["scale"] * 2),
+                    "grain": float(1.0 / (np.std(smooth_energy) + 1e-6)),
+                    "persistence": float(self._calculate_persistence(smooth_energy, params)),
+                    "distribution": "perlin"
+                },
                 "timestamps": timestamps
             }
-            
+
+            # Debugging prints
+            print(f"Received noise_params: {noise_params}")
+            print(f"Gaussian params: {noise_params.get('gaussian')}")
+
             debug_info = (
                 f"Processed {len(energy_levels)} energy values\n"
                 f"Time base: {time_base}\n"
@@ -102,31 +121,6 @@ class AudioNoiseMapper:
     def _smooth_signal(self, signal: np.ndarray, window_size: int) -> np.ndarray:
         window = np.ones(window_size) / window_size
         return np.convolve(signal, window, mode='same')
-    
-    def _energy_to_gaussian(self, energy: np.ndarray, params: Dict) -> NoiseParams:
-        return NoiseParams(
-            intensity=float(np.mean(energy) * params["scale"]),
-            grain=float(np.std(energy) * 2),
-            persistence=float(self._calculate_persistence(energy, params)),
-            distribution="gaussian"
-        )
-    
-    def _energy_to_salt_pepper(self, energy: np.ndarray, params: Dict) -> NoiseParams:
-        threshold = np.percentile(energy, 75)
-        return NoiseParams(
-            intensity=float(np.sum(energy > threshold) / len(energy)),
-            grain=float(1.0 / params["window_size"]),
-            persistence=float(self._calculate_persistence(energy, params)),
-            distribution="salt_pepper"
-        )
-    
-    def _energy_to_perlin(self, energy: np.ndarray, params: Dict) -> NoiseParams:
-        return NoiseParams(
-            intensity=float(np.max(energy) * params["scale"]),
-            grain=float(1.0 / (np.std(energy) + 1e-6)),
-            persistence=float(self._calculate_persistence(energy, params)),
-            distribution="perlin"
-        )
     
     def _calculate_persistence(self, energy: np.ndarray, params: Dict) -> float:
         diff = np.diff(energy)
