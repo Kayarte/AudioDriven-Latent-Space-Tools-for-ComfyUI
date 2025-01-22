@@ -15,6 +15,7 @@ class NoiseToLatentConverter:
                 "height": ("INT", {"default": 512, "min": 64, "max": 2048, "step": 8}),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max": 64}),
                 "noise_type": (["gaussian", "salt_pepper", "perlin"],),
+                "analysis_type": ("ANALYSIS_TYPE",),
             }
         }
 
@@ -40,7 +41,7 @@ class NoiseToLatentConverter:
         t = fade(grid[:shape[0], :shape[1]])
         return math.sqrt(2) * torch.lerp(torch.lerp(n00, n10, t[..., 0]), torch.lerp(n01, n11, t[..., 0]), t[..., 1])
 
-    def generate_latent_noise(self, noise_params, width, height, batch_size, noise_type):
+    def generate_latent_noise(self, noise_params, width, height, batch_size, noise_type, analysis_type):
         latent_height = height // 8
         latent_width = width // 8
         params = {k: v for k, v in noise_params.items() if k != "timestamps"}
@@ -50,23 +51,61 @@ class NoiseToLatentConverter:
         grain = selected_params["grain"]
         persistence = selected_params["persistence"]
 
+        # Adjust parameters based on analysis type
+        if analysis_type in ["onset", "segment"]:
+            intensity *= 1.5
+            grain *= 2.0
+        elif analysis_type in ["mel", "spectral"]:
+            intensity *= 2.0
+            persistence *= 1.2
+        elif analysis_type == "tempo":
+            grain *= 1.5
+            persistence *= 0.8
+
         noise = torch.zeros((batch_size, 4, latent_height, latent_width), dtype=torch.float32, device="cpu")
         
         if noise_type == "gaussian":
-            noise = torch.randn((batch_size, 4, latent_height, latent_width)) * intensity * persistence
+            # Scale noise differently for spectral analysis
+            if analysis_type in ["mel", "spectral"]:
+                base_noise = torch.randn((batch_size, 4, latent_height, latent_width))
+                freq_noise = torch.randn((batch_size, 4, latent_height, latent_width))
+                noise = (base_noise + freq_noise * grain) * intensity * persistence
+            else:
+                noise = torch.randn((batch_size, 4, latent_height, latent_width)) * intensity * persistence
         
         elif noise_type == "salt_pepper":
-            mask = torch.rand((batch_size, 4, latent_height, latent_width)) < grain
+            # Adjust threshold based on analysis type
+            threshold = grain
+            if analysis_type in ["onset", "segment"]:
+                threshold = min(grain * 1.5, 0.9)
+            
+            mask = torch.rand((batch_size, 4, latent_height, latent_width)) < threshold
             noise[mask] = intensity
             noise[~mask] = -intensity
             noise *= persistence
             
         elif noise_type == "perlin":
+            freq_multiplier = 1.0
+            if analysis_type in ["mel", "spectral"]:
+                freq_multiplier = 2.0
+            elif analysis_type in ["onset", "segment"]:
+                freq_multiplier = 0.5
+                
             for i in range(batch_size):
                 for j in range(4):
-                    noise_values = self.rand_perlin_2d((latent_height, latent_width), (1,1))
+                    noise_values = self.rand_perlin_2d(
+                        (latent_height, latent_width),
+                        (1, 1)
+                    )
                     noise_values = intensity * noise_values * persistence
-                    noise[i, j] = noise_values
+                    if analysis_type in ["mel", "spectral"]:
+                        # Add higher frequency detail for spectral analysis
+                        detail = self.rand_perlin_2d(
+                            (latent_height, latent_width),
+                            (2, 2)
+                        ) * 0.3
+                        noise_values += detail
+                    noise[i, j] = noise_values * freq_multiplier
 
         return ({"samples": noise},)
 
