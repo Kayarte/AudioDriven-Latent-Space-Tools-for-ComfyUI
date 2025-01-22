@@ -2,9 +2,6 @@ import librosa
 import numpy as np
 
 class LibrosaAnalysisNode:
-    """
-    A node to analyze audio using Librosa with separated outputs for energy and timing data.
-    """
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -13,83 +10,98 @@ class LibrosaAnalysisNode:
                     "multiline": False,
                     "default": "path/to/audio/file.wav",
                 }),
-                "interval_choice": (["default", "second", "half_second", "beat"], {
+                "analysis_type": (["default", "onset", "segment", "tempo", "mel", "spectral", "second", "half_second", "beat"], {
                     "default": "default",
-                    "display": "Select Interval",
+                }),
+                "window_size": ("INT", {
+                    "default": 512,
+                    "min": 128,
+                    "max": 2048,
+                    "step": 128
                 }),
             },
         }
     
-    RETURN_TYPES = ("AUDIO_ENERGY", "TIMESTAMPS", "STRING")
-    RETURN_NAMES = ("energy_levels", "timestamps", "analysis_text")
+    RETURN_TYPES = ("AUDIO_ENERGY", "TIMESTAMPS", "STRING", "ANALYSIS_TYPE")
+    RETURN_NAMES = ("energy_levels", "timestamps", "analysis_text", "analysis_type")
     FUNCTION = "analyze_audio"
     CATEGORY = "Audio Processing"
 
-    def analyze_audio(self, audio_file, interval_choice):
+    def analyze_audio(self, audio_file, analysis_type, window_size):
         try:
-            # Load the audio file
             y, sr = librosa.load(audio_file, sr=None)
-            
-            # Get audio duration
             duration = librosa.get_duration(y=y, sr=sr)
             
-            # Energy calculation
-            hop_length = 512
-            energy = np.array([
-                sum(abs(y[i:i + hop_length]**2)) 
-                for i in range(0, len(y), hop_length)
-            ])
-            energy_times = librosa.frames_to_time(
-                range(len(energy)), 
-                sr=sr
-            )
+            energy_levels = []
+            timestamps = []
             
-            # Normalize energy to range [0, 1]
-            energy = energy / np.max(energy)
-            
-            # Adjust intervals based on user input
-            if interval_choice == "second":
-                # Filter for whole seconds
-                time_indices = [i for i, t in enumerate(energy_times) if round(t, 3) % 1 == 0]
-                energy_times = energy_times[time_indices]
-                energy = energy[time_indices]
+            if analysis_type == "onset":
+                onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
+                timestamps = librosa.frames_to_time(onset_frames, sr=sr)
+                energy_levels = [librosa.feature.rms(y=y, frame_length=window_size)[0][frame] for frame in onset_frames]
                 
-            elif interval_choice == "half_second":
-                # Filter for half seconds
-                time_indices = [i for i, t in enumerate(energy_times) if round(t * 2, 3) % 1 == 0]
-                energy_times = energy_times[time_indices]
-                energy = energy[time_indices]
+            elif analysis_type == "segment":
+                # Use librosa's segment boundaries detection
+                S = np.abs(librosa.stft(y))
+                segments = librosa.segment.detect_spectral_onsets(S)
+                timestamps = librosa.frames_to_time(np.where(segments)[0], sr=sr)
+                energy_levels = [librosa.feature.rms(y=y, frame_length=window_size)[0][frame] for frame in np.where(segments)[0]]
                 
-            elif interval_choice == "beat":
-                # Get beat times
-                tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
-                beat_times = librosa.frames_to_time(beat_frames, sr=sr)
-                # Interpolate energy to beat times
-                energy = np.interp(beat_times, energy_times, energy)
-                energy_times = beat_times
+            elif analysis_type == "tempo":
+                onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+                tempo_frames = librosa.frames_to_time(np.arange(len(onset_env)), sr=sr)
+                timestamps = tempo_frames
+                energy_levels = onset_env.tolist()
+                
+            elif analysis_type == "mel":
+                mel_spec = librosa.feature.melspectrogram(y=y, sr=sr)
+                timestamps = librosa.frames_to_time(range(mel_spec.shape[1]), sr=sr)
+                energy_levels = np.mean(mel_spec, axis=0).tolist()
+                
+            elif analysis_type == "spectral":
+                spec_cent = librosa.feature.spectral_centroid(y=y, sr=sr)
+                timestamps = librosa.frames_to_time(range(spec_cent.shape[1]), sr=sr)
+                energy_levels = spec_cent[0].tolist()
+                
+            else:  # default, second, half_second, beat
+                hop_length = window_size // 4
+                energy = librosa.feature.rms(y=y, frame_length=window_size, hop_length=hop_length)[0]
+                timestamps = librosa.frames_to_time(range(len(energy)), sr=sr, hop_length=hop_length)
+                
+                if analysis_type == "second":
+                    idx = [i for i, t in enumerate(timestamps) if round(t, 3) % 1 == 0]
+                elif analysis_type == "half_second":
+                    idx = [i for i, t in enumerate(timestamps) if round(t * 2, 3) % 1 == 0]
+                elif analysis_type == "beat":
+                    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
+                    timestamps = librosa.frames_to_time(beat_frames, sr=sr)
+                    energy_levels = [energy[min(i, len(energy)-1)] for i in beat_frames]
+                else:  # default
+                    energy_levels = energy.tolist()
+                    
+                if analysis_type in ["second", "half_second"]:
+                    energy_levels = [energy[i] for i in idx]
+                    timestamps = [timestamps[i] for i in idx]
+                elif analysis_type not in ["beat"]:
+                    energy_levels = energy.tolist()
+                    timestamps = timestamps.tolist()
+
+            # Normalize energy levels
+            energy_levels = np.array(energy_levels)
+            energy_levels = (energy_levels - energy_levels.min()) / (energy_levels.max() - energy_levels.min())
             
-            # Convert numpy arrays to lists and ensure they're not empty
-            energy_list = energy.tolist()
-            times_list = energy_times.tolist()
-            
-            if not energy_list or not times_list:
-                raise ValueError("No energy values or timestamps were generated")
-            
-            # Format text output for display
             analysis_text = (
-                f"Audio Duration: {duration:.2f} seconds\n"
-                f"Number of Energy Measurements: {len(energy_list)}\n"
-                f"Interval Type: {interval_choice}"
+                f"Analysis Type: {analysis_type}\n"
+                f"Duration: {duration:.2f} seconds\n"
+                f"Measurements: {len(energy_levels)}\n"
+                f"Window Size: {window_size}"
             )
             
-            # Return tuple of all outputs
-            return (energy_list, times_list, analysis_text)
+            return (energy_levels.tolist(), timestamps, analysis_text, analysis_type)
             
         except Exception as e:
-            # Return error state
-            return ([1.0], [0.0], f"Error: {str(e)}")
+            return ([1.0], [0.0], f"Error: {str(e)}", "default")
 
-# Register the node
 NODE_CLASS_MAPPINGS = {
     "LibrosaAnalysisNode": LibrosaAnalysisNode
 }
