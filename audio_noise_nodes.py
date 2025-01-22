@@ -1,13 +1,6 @@
 import numpy as np
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
-from enum import Enum
-
-class TimeBase(Enum):
-    BEAT = "beat"
-    SECOND = "second"
-    HALF = "half"
-    SPECTRAL = "spectral"
 
 @dataclass
 class NoiseParams:
@@ -17,15 +10,13 @@ class NoiseParams:
     distribution: str
 
 class AudioNoiseMapper:
-    """Maps audio features to noise parameters for image generation"""
-    
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "energy_levels": ("AUDIO_ENERGY",),
                 "timestamps": ("TIMESTAMPS",),
-                "time_base": (["beat", "second", "half", "spectral"],),
+                "analysis_type": ("ANALYSIS_TYPE",),
             }
         }
     
@@ -35,170 +26,75 @@ class AudioNoiseMapper:
     CATEGORY = "audio/noise"
 
     def __init__(self):
-        self._setup_time_base_params()
+        self._setup_analysis_params()
     
-    def _setup_time_base_params(self):
+    def _setup_analysis_params(self):
         self.params = {
-            "beat": {
-                "smoothing": 0.2,
-                "scale": 1.0,
-                "window_size": 4
-            },
-            "second": {
-                "smoothing": 0.1,
-                "scale": 2.0,
-                "window_size": 1
-            },
-            "half": {
-                "smoothing": 0.3,
-                "scale": 0.5,
-                "window_size": 2
-            },
-            "spectral": {
-                "smoothing": 0.05,
-                "scale": 1.5,
-                "window_size": 8
-            }
+            "default": {"scale": 1.0, "smoothing": 0.2},
+            "onset": {"scale": 2.0, "smoothing": 0.1},
+            "segment": {"scale": 1.5, "smoothing": 0.15},
+            "tempo": {"scale": 1.8, "smoothing": 0.12},
+            "mel": {"scale": 2.5, "smoothing": 0.08},
+            "spectral": {"scale": 2.2, "smoothing": 0.05},
+            "second": {"scale": 2.0, "smoothing": 0.1},
+            "half_second": {"scale": 1.5, "smoothing": 0.3},
+            "beat": {"scale": 1.8, "smoothing": 0.2}
         }
     
     def process_energy_to_noise(self, 
                               energy_levels: List[float],
                               timestamps: List[float],
-                              time_base: str) -> Tuple[Dict[str, NoiseParams], str]:
+                              analysis_type: str) -> Tuple[Dict[str, NoiseParams], str]:
         try:
-            # Ensure inputs are valid
-            if not energy_levels or not timestamps:
+            if len(energy_levels) == 0 or len(timestamps) == 0:
                 raise ValueError("Empty energy levels or timestamps received")
             
-            # Get parameters for selected time base
-            params = self.params[time_base]
-            
-            # Convert to numpy arrays
+            params = self.params[analysis_type]
             energy_array = np.array(energy_levels)
             
-            # Smooth the energy data
-            smooth_energy = self._smooth_signal(energy_array, params["window_size"])
+            # Calculate noise parameters based on analysis type
+            intensity_scale = params["scale"]
+            smoothing = params["smoothing"]
             
             # Generate different noise distributions
             noise_params = {
                 "gaussian": {
-                    "intensity": float(np.mean(smooth_energy) * params["scale"] * 3),
-                    "grain": float(np.std(smooth_energy) * 5),
-                    "persistence": float(self._calculate_persistence(smooth_energy, params)),
+                    "intensity": float(np.mean(energy_array) * intensity_scale * 3.0),
+                    "grain": float(np.std(energy_array) * 5.0),
+                    "persistence": float(np.exp(-smoothing * np.std(np.diff(energy_array)))),
                     "distribution": "gaussian"
                 },
                 "salt_pepper": {
-                    "intensity": float(np.sum(smooth_energy > np.percentile(smooth_energy, 75)) / len(smooth_energy)),
-                    "grain": float(1.0 / params["window_size"]),
-                    "persistence": float(self._calculate_persistence(smooth_energy, params)),
+                    "intensity": float(np.percentile(energy_array, 90) * intensity_scale),
+                    "grain": float(np.mean(energy_array > np.median(energy_array))),
+                    "persistence": float(np.exp(-smoothing * np.std(np.diff(energy_array)))),
                     "distribution": "salt_pepper"
                 },
                 "perlin": {
-                    "intensity": float(np.max(smooth_energy) * params["scale"] * 2),
-                    "grain": float(1.0 / (np.std(smooth_energy) + 1e-6)),
-                    "persistence": float(self._calculate_persistence(smooth_energy, params)),
+                    "intensity": float(np.max(energy_array) * intensity_scale * 4.0),
+                    "grain": float(np.std(energy_array) * 10.0),
+                    "persistence": float(np.exp(-smoothing * np.std(np.diff(energy_array)))),
                     "distribution": "perlin"
                 },
                 "timestamps": timestamps
             }
-
-            # Debugging prints
-            print(f"Received noise_params: {noise_params}")
-            print(f"Gaussian params: {noise_params.get('gaussian')}")
-
+            
             debug_info = (
-                f"Processed {len(energy_levels)} energy values\n"
-                f"Time base: {time_base}\n"
-                f"Window size: {params['window_size']}\n"
-                f"Scale: {params['scale']}"
+                f"Analysis: {analysis_type}\n"
+                f"Scale: {intensity_scale:.2f}\n"
+                f"Mean Energy: {np.mean(energy_array):.3f}\n"
+                f"Energy Variance: {np.var(energy_array):.3f}"
             )
             
             return (noise_params, debug_info)
             
         except Exception as e:
-            return ({}, f"Error in noise mapping: {str(e)}")
-    
-    def _smooth_signal(self, signal: np.ndarray, window_size: int) -> np.ndarray:
-        window = np.ones(window_size) / window_size
-        return np.convolve(signal, window, mode='same')
-    
-    def _calculate_persistence(self, energy: np.ndarray, params: Dict) -> float:
-        diff = np.diff(energy)
-        return float(np.exp(-np.std(diff) * params["scale"]))
+            return ({}, f"Error: {str(e)}")
 
-class RhythmicNoiseModulator:
-    """Modulates noise parameters based on rhythmic features"""
-    
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "noise_params": ("NOISE_PARAMS",),
-                "beat_times": ("BEAT_TIMES",),
-                "energy_levels": ("AUDIO_ENERGY",),
-                "beat_division": ("INT", {"default": 4, "min": 1, "max": 16}),
-            }
-        }
-    
-    RETURN_TYPES = ("MODULATED_NOISE_PARAMS",)
-    FUNCTION = "modulate_noise"
-    CATEGORY = "audio/noise"
-
-    def modulate_noise(self,
-                      noise_params: Dict[str, NoiseParams],
-                      beat_times: List[float],
-                      energy_levels: List[float],
-                      beat_division: int) -> Tuple[List[NoiseParams]]:
-        """Create rhythmically modulated noise parameters"""
-        
-        # Create subdivided beat grid
-        beat_grid = self._create_beat_grid(beat_times, beat_division)
-        
-        # Generate modulation envelopes
-        intensity_mod = self._create_intensity_envelope(beat_grid, energy_levels)
-        grain_mod = self._create_grain_envelope(beat_grid, energy_levels)
-        
-        # Apply modulation to each noise type
-        modulated_params = {}
-        for noise_type, base_params in noise_params.items():
-            if noise_type != "timestamps":  # Skip the timestamps entry
-                mod_params = []
-                for i in range(len(beat_grid)):
-                    mod_param = NoiseParams(
-                        intensity=base_params.intensity * intensity_mod[i],
-                        grain=base_params.grain * grain_mod[i],
-                        persistence=base_params.persistence,
-                        distribution=base_params.distribution
-                    )
-                    mod_params.append(mod_param)
-                modulated_params[noise_type] = mod_params
-        
-        modulated_params["timestamps"] = beat_grid.tolist()
-        return (modulated_params,)
-    
-    def _create_beat_grid(self, beat_times: List[float], beat_division: int) -> np.ndarray:
-        grid = []
-        for i in range(len(beat_times) - 1):
-            interval = beat_times[i+1] - beat_times[i]
-            subdivisions = np.linspace(0, interval, beat_division, endpoint=False)
-            grid.extend(beat_times[i] + subdivisions)
-        return np.array(grid)
-    
-    def _create_intensity_envelope(self, grid: np.ndarray, energy: List[float]) -> np.ndarray:
-        return np.interp(grid, np.arange(len(energy)), energy)
-    
-    def _create_grain_envelope(self, grid: np.ndarray, energy: List[float]) -> np.ndarray:
-        energy_diff = np.diff(energy, prepend=energy[0])
-        return 1.0 + np.abs(np.interp(grid, np.arange(len(energy_diff)), energy_diff))
-
-# Register the nodes
 NODE_CLASS_MAPPINGS = {
     "AudioNoiseMapper": AudioNoiseMapper,
-    "RhythmicNoiseModulator": RhythmicNoiseModulator,
 }
 
-# Add descriptions for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioNoiseMapper": "Audio To Noise Parameters",
-    "RhythmicNoiseModulator": "Rhythmic Noise Modulator"
 }
