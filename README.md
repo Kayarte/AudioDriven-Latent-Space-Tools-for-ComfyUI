@@ -12,20 +12,21 @@ Features
 
 Settings
 
-Average measurements by analysis type (from 3s, 11.65s, and 89s samples):
-WARNING: Typical frame counts
-
-    default: huge (~122K for 89s)
+WARNING: TIMESTAMP NOISE GENERATOR NODE 
     
-    mel/spectral/tempo: high (~7.6K for 89s)
+    Typical frame counts: Average measurements by analysis type (from 3s, 11.65s, and 89s samples)
 
-     onset: moderate (60-500 depending on complexity) 
+    Default: huge (~122K for 89s)
+    
+    Mel/spectral/tempo: high (~7.6K for 89s)
 
-     beat: low (14-168 based on tempo) 
+    Onset: moderate (60-500 depending on complexity) 
 
-     second: consistent (~length in seconds) 
+    Beat: low (14-168 based on tempo) 
 
-     half_second: consistent (~2x seconds) 
+    Second: consistent (~length in seconds) 
+
+    Half_second: consistent (~2x seconds) 
 
 
 Choose analysis type based on desired frame count and use case.
