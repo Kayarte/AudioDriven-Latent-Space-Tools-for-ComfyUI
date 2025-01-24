@@ -12,6 +12,18 @@ Features
 
 Settings
 
+Average measurements by analysis type (from 3s, 11.65s, and 89s samples):
+WARNING: Typical frame counts
+
+default: huge (~122K for 89s)
+mel/spectral/tempo: high (~7.6K for 89s)
+onset: moderate (60-500 depending on complexity)
+beat: low (14-168 based on tempo)
+second: consistent (~length in seconds)
+half_second: consistent (~2x seconds)
+
+Choose analysis type based on desired frame count and use case.
+
 Default, onset, *segment*, tempo, Mel (my fav.), spectral, second, half second, beat. 
 
 *Librosa Audio Analysis - settings = segment doesnt work.* 
@@ -25,4 +37,5 @@ Installation
 For a Greater Project.
 This node is part of a ongoing solo project to integrate music analysis.
 
-![image](https://github.com/user-attachments/assets/41db3228-bee4-4d99-a4b7-766ae93cd5b9)
+![image](https://github.com/user-attachments/assets/f84ee035-968f-4e8b-b9e7-ccc1c45a92c8)
+
