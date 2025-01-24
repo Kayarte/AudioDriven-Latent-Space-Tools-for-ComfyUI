@@ -15,12 +15,18 @@ Settings
 Average measurements by analysis type (from 3s, 11.65s, and 89s samples):
 WARNING: Typical frame counts
 
-default: huge (~122K for 89s)
-mel/spectral/tempo: high (~7.6K for 89s)
-onset: moderate (60-500 depending on complexity)
-beat: low (14-168 based on tempo)
-second: consistent (~length in seconds)
-half_second: consistent (~2x seconds)
+    default: huge (~122K for 89s)
+    
+    mel/spectral/tempo: high (~7.6K for 89s)
+
+     onset: moderate (60-500 depending on complexity) 
+
+     beat: low (14-168 based on tempo) 
+
+     second: consistent (~length in seconds) 
+
+     half_second: consistent (~2x seconds) 
+
 
 Choose analysis type based on desired frame count and use case.
 
@@ -32,7 +38,7 @@ Gaussian, salt and pepper, Perlin.
         
 Installation
 
-    Download or clone this repository to your ComfyUI\custom_nodes folder
+Download or clone this repository to your ComfyUI\custom_nodes folder
 
 For a Greater Project.
 This node is part of a ongoing solo project to integrate music analysis.
