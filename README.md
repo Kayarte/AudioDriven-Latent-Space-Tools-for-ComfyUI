@@ -1,6 +1,6 @@
-Librosa Audio Analysis Node for ComfyUI
+Librosa Audio Analysis to Noise node for ComfyUI.
 
-This is a custom node for ComfyUI that analyzes audio files using Librosa, extracting tempo, beat times, energy levels, and timestamps. The analysis results are displayed in a text box within ComfyUI.
+This is a custom node for ComfyUI that analyzes audio files using Librosa, extracting tempo, beat times, energy levels, and timestamps. The analysis results can be displayed in a text box within ComfyUI.
 
 Features
 
@@ -12,11 +12,11 @@ Features
 
 Settings
 
-added more. 
+Default, onset, *segment*, tempo, Mel (my fav.), spectral, second, half second, beat. 
 
 *Librosa Audio Analysis - settings = segment doesnt work.* 
 
-The rest do!
+Gaussian, salt and pepper, Perlin.
         
 Installation
 
