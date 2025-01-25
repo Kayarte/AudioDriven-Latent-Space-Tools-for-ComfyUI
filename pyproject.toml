@@ -9,6 +9,6 @@ Repository = "https://github.com/Kayarte/AudioDriven-Latent-Space-Tools-for-Comf
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "kayarte"
 DisplayName = "AudioDriven-Latent-Space-Tools-for-ComfyUI"
 Icon = ""
