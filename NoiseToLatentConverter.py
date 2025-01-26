@@ -1,6 +1,6 @@
 import torch
 import math
-from Limbrosa.nodes.audio_noise_nodes import NoiseParams
+from AudioDriven_Latent_Space_Tools_for_ComfyUI.audio_noise_nodes import NoiseParams
 
 class NoiseToLatentConverter:
     def __init__(self):
