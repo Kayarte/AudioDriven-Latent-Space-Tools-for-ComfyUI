@@ -65,5 +65,9 @@ Download or clone this repository to your ComfyUI\custom_nodes folder
 
 This node is part of a ongoing solo project to integrate music analysis. plz enjoy.
 
+![m2ng-ezgif com-optimize](https://github.com/user-attachments/assets/4fd765ef-3d75-48b5-b9e7-ec37bd6052ad)
+
 ![image](https://github.com/user-attachments/assets/b5080a53-398b-48c2-bdac-4e8e6890e1f5)
+
+
 
