@@ -1,0 +1,554 @@
+{
+  "last_node_id": 54,
+  "last_link_id": 113,
+  "nodes": [
+    {
+      "id": 11,
+      "type": "AudioNoiseMapper",
+      "pos": [
+        740,
+        360
+      ],
+      "size": [
+        220,
+        66
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "energy_levels",
+          "type": "AUDIO_ENERGY",
+          "link": 10
+        },
+        {
+          "name": "timestamps",
+          "type": "TIMESTAMPS",
+          "link": 76
+        },
+        {
+          "name": "analysis_type",
+          "type": "ANALYSIS_TYPE",
+          "link": 33
+        }
+      ],
+      "outputs": [
+        {
+          "name": "noise_params",
+          "type": "NOISE_PARAMS",
+          "links": [
+            14,
+            84
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "debug_info",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioNoiseMapper"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "Display Any (rgthree)",
+      "pos": [
+        520,
+        570
+      ],
+      "size": [
+        210,
+        130
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 12,
+          "dir": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Display Any (rgthree)"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 53,
+      "type": "ImagePreviewFromLatent+",
+      "pos": [
+        1273.513427734375,
+        96.72766876220703
+      ],
+      "size": [
+        300,
+        354
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 111
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 112
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImagePreviewFromLatent+"
+      },
+      "widgets_values": [
+        0,
+        "none"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "NoiseToLatentConverter",
+      "pos": [
+        1000,
+        320
+      ],
+      "size": [
+        210,
+        150
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise_params",
+          "type": "NOISE_PARAMS",
+          "link": 14
+        },
+        {
+          "name": "analysis_type",
+          "type": "ANALYSIS_TYPE",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            111
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NoiseToLatentConverter"
+      },
+      "widgets_values": [
+        512,
+        512,
+        1,
+        "gaussian"
+      ]
+    },
+    {
+      "id": 54,
+      "type": "VAELoader",
+      "pos": [
+        904.1487426757812,
+        171.5854949951172
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            112,
+            113
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "taesdxl"
+      ]
+    },
+    {
+      "id": 41,
+      "type": "AdvancedNoisePatterns",
+      "pos": [
+        1000,
+        570
+      ],
+      "size": [
+        243.60000610351562,
+        126
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise_params",
+          "type": "NOISE_PARAMS",
+          "link": 84
+        },
+        {
+          "name": "analysis_type",
+          "type": "ANALYSIS_TYPE",
+          "link": 85
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            110
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "TIMESTAMPS",
+          "type": "TIMESTAMPS",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AdvancedNoisePatterns"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "simplex"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "LibrosaAnalysisNode",
+      "pos": [
+        510,
+        360
+      ],
+      "size": [
+        210,
+        166
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "energy_levels",
+          "type": "AUDIO_ENERGY",
+          "links": [
+            10
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "timestamps",
+          "type": "TIMESTAMPS",
+          "links": [
+            76
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "analysis_text",
+          "type": "STRING",
+          "links": [
+            12
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "analysis_type",
+          "type": "ANALYSIS_TYPE",
+          "links": [
+            33,
+            34,
+            85
+          ],
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LibrosaAnalysisNode"
+      },
+      "widgets_values": [
+        "D:\\fun\\111.mp3",
+        "spectral",
+        128
+      ]
+    },
+    {
+      "id": 51,
+      "type": "ImagePreviewFromLatent+",
+      "pos": [
+        1272.42041015625,
+        517.3280639648438
+      ],
+      "size": [
+        300,
+        354
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 110
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 113
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImagePreviewFromLatent+"
+      },
+      "widgets_values": [
+        0,
+        "none"
+      ]
+    }
+  ],
+  "links": [
+    [
+      10,
+      10,
+      0,
+      11,
+      0,
+      "AUDIO_ENERGY"
+    ],
+    [
+      12,
+      10,
+      2,
+      12,
+      0,
+      "*"
+    ],
+    [
+      14,
+      11,
+      0,
+      14,
+      0,
+      "NOISE_PARAMS"
+    ],
+    [
+      33,
+      10,
+      3,
+      11,
+      2,
+      "ANALYSIS_TYPE"
+    ],
+    [
+      34,
+      10,
+      3,
+      14,
+      1,
+      "ANALYSIS_TYPE"
+    ],
+    [
+      76,
+      10,
+      1,
+      11,
+      1,
+      "TIMESTAMPS"
+    ],
+    [
+      84,
+      11,
+      0,
+      41,
+      0,
+      "NOISE_PARAMS"
+    ],
+    [
+      85,
+      10,
+      3,
+      41,
+      1,
+      "ANALYSIS_TYPE"
+    ],
+    [
+      110,
+      41,
+      0,
+      51,
+      0,
+      "LATENT"
+    ],
+    [
+      111,
+      14,
+      0,
+      53,
+      0,
+      "LATENT"
+    ],
+    [
+      112,
+      54,
+      0,
+      53,
+      1,
+      "VAE"
+    ],
+    [
+      113,
+      54,
+      0,
+      51,
+      1,
+      "VAE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "music noise",
+      "bounding": [
+        500,
+        290,
+        470,
+        413.6000061035156
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "Multi",
+      "bounding": [
+        990,
+        490,
+        263.5999755859375,
+        209.60003662109375
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "single",
+      "bounding": [
+        990,
+        250,
+        230,
+        233.60000610351562
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8390545288824649,
+      "offset": [
+        47.1188102492963,
+        452.5297213944463
+      ]
+    },
+    "ue_links": [],
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0
+  },
+  "version": 0.4
+}
