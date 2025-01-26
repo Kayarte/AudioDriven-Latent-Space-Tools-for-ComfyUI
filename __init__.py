@@ -4,7 +4,7 @@ import importlib
 node_list = [
     "librosa_analysis_node",
     "audio_noise_nodes",
-    "timestamp-noise-node",
+    "AdvancedNoisePatterns",
     "NoiseToLatentConverter"
 ]
 
