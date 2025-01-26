@@ -1,20 +1,49 @@
-Librosa Audio Analysis to Noise node for ComfyUI.
+# AudioDriven Latent Space Tools for ComfyUI
 
-This is a custom node for ComfyUI that analyzes audio files using Librosa, extracting tempo, beat times, energy levels, and timestamps. The analysis results can be displayed in a text box within ComfyUI.
+Generate dynamic latent noise patterns driven by audio analysis.
 
-Features
+### Nodes
 
-    Audio Duration: Shows the total length of the audio in seconds.
-    Tempo: Displays the beats per minute (BPM) of the audio.
-    Beat Times: Provides timestamps for each beat detected in the audio.
-    Energy Levels: Displays the energy levels calculated at intervals throughout the audio.
-    Energy Timestamps: Lists the corresponding timestamps for each energy level.
+### Librosa Audio Analysis
+Analyzes audio files using various methods:
+- Onset detection (note starts)
+- Spectral content
+- Beat tracking
+- Tempo analysis
+- MEL spectrograms
 
-Settings
+### Audio To Noise Parameters
+Converts audio analysis into noise parameters:
+- Intensity based on audio energy
+- Grain size from spectral features
+- Persistence from temporal changes
 
-WARNING: TIMESTAMP NOISE GENERATOR NODE 
+### Audio Noise to Latent
+Converts noise parameters to latent space noise using:
+- Gaussian noise
+- Salt & pepper noise
+- Perlin noise
+
+### Advanced Audio Noise Patterns
+Creates musical visualization-style patterns:
+- Simplex noise
+- Cellular patterns
+- Fractal Brownian Motion (FBM)
+- Wave patterns
+- Domain warping
+
+## Usage
+
+1. Input audio file through Librosa Analysis
+2. Choose analysis type (onset/tempo/mel/etc.)
+3. Convert to noise parameters
+4. Generate latent noise
+5. Connect to ksampler
+6. Use with low denoising (<0.5) for audio-visual blending
+
+WARNING: Advanced Audio Noise Patterns Node
     
-    Typical frame counts: Average measurements by analysis type (from 3s, 11.65s, and 89s samples)
+    Typical image counts: Average measurements by analysis type (from 3s, 11.65s, and 89s samples)
 
     Default: huge (~122K for 89s)
     
@@ -28,21 +57,13 @@ WARNING: TIMESTAMP NOISE GENERATOR NODE
 
     Half_second: consistent (~2x seconds) 
 
-
-Choose analysis type based on desired frame count and use case.
-
-Default, onset, *segment*, tempo, Mel (my fav.), spectral, second, half second, beat. 
-
-*Librosa Audio Analysis - settings = segment doesnt work.* 
-
-Gaussian, salt and pepper, Perlin.
         
 Installation
 
 Download or clone this repository to your ComfyUI\custom_nodes folder
 
-For a Greater Project.
-This node is part of a ongoing solo project to integrate music analysis.
 
-![image](https://github.com/user-attachments/assets/f84ee035-968f-4e8b-b9e7-ccc1c45a92c8)
+This node is part of a ongoing solo project to integrate music analysis. plz enjoy.
+
+![image](https://github.com/user-attachments/assets/b5080a53-398b-48c2-bdac-4e8e6890e1f5)
 
